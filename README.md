@@ -24,3 +24,9 @@ If you have any questions, or suggestions for the future challenges, please open
 
 Good luck!
 
+# Belce1982 comments
+
+Created a laravel project for testing purpose
+
+    `composer create-project laravel/laravel improve-api-controller-code --prefer-dist`
+

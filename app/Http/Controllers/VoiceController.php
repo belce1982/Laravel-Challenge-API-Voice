@@ -1,3 +1,5 @@
+<?php
+
 public function voice(Request $request){
     $request->validate([
         'question_id'=>'required|int|exists:questions,id',
@@ -46,3 +48,4 @@ public function voice(Request $request){
         'message'=>'Voting completed successfully'
     ]);
 }
+?>
