@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\VoiceController;
 
 /*
 |--------------------------------------------------------------------------
@@ -12,7 +13,14 @@ use Illuminate\Support\Facades\Route;
 | contains the "web" middleware group. Now create something great!
 |
 */
-
 Route::get('/', function () {
     return view('welcome');
 });
+Route::group(['middleware' => 'auth'], function () {
+    Route::get('/voice', [VoiceController::class, 'index'])
+        ->name('voice.index');
+    Route::post('/voice', [VoiceController::class, 'voice'])
+        ->name('voice.voice');
+});
+    
+require __DIR__.'/auth.php';
