@@ -23,14 +23,12 @@ class VoiceControllerTest extends TestCase
         $this->faker = \Faker\Factory::create();
         $this->user = User::factory()->create();
         Question::factory()
-            ->count(1)
             ->create([
                 'user_id' => $this->user->id,
             ]
         );
         $question = Question::inRandomOrder()->first();
         Voice::factory()
-            ->count(1)
             ->create([
                 'user_id' => $this->user->id,
                 'question_id' => $question->id,
@@ -88,7 +86,7 @@ class VoiceControllerTest extends TestCase
             'question_id'   => 'The selected question id is invalid.',
         ]);                
     }
-    public function testPostVoiceUserNotAllowed()
+    public function testPostVoiceUserNotAllowedToYourQuestion()
     {
         $this->actingAs($this->user);
 
@@ -103,67 +101,75 @@ class VoiceControllerTest extends TestCase
             'status'  => 500,
             'message' => 'The user is not allowed to vote to your question',
         ]);
-
-        $question = Question::where('user_id', '!=', $this->user->id)
-            ->first();
-        $voice = Voice::factory()
-            ->count(1)
-            ->create([
+    }
+    public function testPostVoiceUserNotAllowedToVoteMoreThanOnce()
+    {
+        $this->actingAs($this->user);
+        $question_user = User::factory()->create();
+        $question = Question::factory()
+            ->create(['user_id' => $question_user->id]);
+        Voice::factory()->create([
                 'user_id' => $this->user->id,
                 'question_id' => $question->id,
-                'value' => true,
-            ])->first();
+                'value' => 1,
+            ]);
         $response = $this->post('/voice', [
-            'question_id'   => $voice->question_id,
-            'value'         => $voice->value,
+            'question_id'   => $question->id,
+            'value'         => 1
         ]);
         $response->assertJson([
             'status'  => 500,
             'message' => 'The user is not allowed to vote more than once',
-        ]);
+        ]);        
     }
-    public function testPostVoiceSuccess()
+    public function testPostVoiceUpdateYourVoice()
     {
         $this->actingAs($this->user);
+        $question_user = User::factory()->create();
+        $question = Question::factory()
+            ->create(['user_id' => $question_user->id]);
 
-        $question = Question::where('user_id', '!=', $this->user->id)
-            ->first();
-
-        $voice = Voice::factory()
-            ->count(1)
-            ->create([
+        Voice::factory()->create([
                 'user_id' => $this->user->id,
                 'question_id' => $question->id,
-                'value' => true,
-            ])->first();
+                'value' => 1,
+        ]);
 
         $response = $this->post('/voice', [
-            'question_id'   => $voice->question_id,
-            'value'         => false,
+            'question_id'   => $question->id,
+            'value'         => 0,
         ]);
 
         $response->assertJson([
             'status'  => 201,
             'message' => 'update your voice',
-        ]);    
-
-        $user = User::factory()->count(1)->create()->first();
+        ]);
+    }
+    public function testPostVoiceVotingComplete()
+    {
+        $this->actingAs($this->user);
+        $question_user = User::factory()->create();
         $question = Question::factory()
-            ->count(1)
-            ->create([
-                'user_id' => $user->id,
-                'value' => $this->faker->words(3, true),
-            ])->first();
+            ->create(['user_id' => $question_user->id]);
 
         $response = $this->post('/voice', [
             'question_id'   => $question->id,
-            'value'         => false,
+            'value'         => 1,
         ]);
 
+        $response->assertStatus(200);
         $response->assertJson([
             'status'  => 200,
             'message' => 'Voting completed successfully',
-        ]);        
+        ]);
+        $this->assertDatabaseHas(
+            Voice::class,
+            [
+                'user_id'     => $this->user->id,
+                'question_id' => $question->id,
+                'value'       => 1,
+            ]
+        );
         //$response->dumpSession();
-    }
+    }   
 }
