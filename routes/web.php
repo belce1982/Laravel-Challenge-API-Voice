@@ -16,11 +16,4 @@ use App\Http\Controllers\VoiceController;
 Route::get('/', function () {
     return view('welcome');
 });
-Route::group(['middleware' => 'auth'], function () {
-    Route::get('/voice', [VoiceController::class, 'index'])
-        ->name('voice.index');
-    Route::post('/voice', [VoiceController::class, 'voice'])
-        ->name('voice.voice');
-});
-    
 require __DIR__.'/auth.php';

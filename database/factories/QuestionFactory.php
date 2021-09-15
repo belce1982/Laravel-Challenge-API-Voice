@@ -25,7 +25,7 @@ class QuestionFactory extends Factory
         $number_value_words = $this->faker->numberBetween(2, 5);
         return [
             'value' => $this->faker->words($number_value_words, true).'?',
-            'user_id' => User::inRandomOrder()->first(),
+            'user_id' => User::inRandomOrder()->first()->id,
         ];
     }
 }
