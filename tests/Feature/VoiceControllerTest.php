@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithFaker;
+//use Illuminate\Foundation\Testing\WithFaker;
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Question;
@@ -14,47 +14,22 @@ class VoiceControllerTest extends TestCase
 {
     use RefreshDatabase;
     private $user;
-    private $faker;
-
 
     public function setUp(): void
     {
         parent::setUp();
-        $this->faker = \Faker\Factory::create();
         $this->user = User::factory()->create();
-        Question::factory()
-            ->create([
-                'user_id' => $this->user->id,
-            ]
-        );
-        $question = Question::inRandomOrder()->first();
-        Voice::factory()
-            ->create([
-                'user_id' => $this->user->id,
-                'question_id' => $question->id,
-                'value' => false,
-            ]);
-        User::factory()
-            ->count(20)
-            ->create();            
-        Question::factory()
-            ->count(100)
-            ->create();
-        Voice::factory()
-            ->count(20)
-            ->create();
     }
 
     public function testGuestCannotPostVoice()
     {
-        $response = $this->post('/voice');
-        $response->assertRedirect('login');
+        $response = $this->postJson('api/voices',
+            ['question_id' => 1, 'value' => 1]);
+        $response->assertStatus(401);
     }
 
-    public function testPostVoiceValidation()
+    /*public function testPostVoiceValidation()
     {
-        $this->actingAs($this->user);
-
         $response = $this->post('/voice');
 
         //'question_id'=>'required',
@@ -64,8 +39,8 @@ class VoiceControllerTest extends TestCase
             'value'         => 'The value field is required.'
         ]);
 
-        $response = $this->post('/voice', [
-            'question_id'   => 'qwerty',
+        $response = $this->actingAs($this->user, 'api')->postJson('api/voices',
+            ['question_id'   => 'qwerty',
             'value'         => 'b',
         ]);
 
@@ -76,7 +51,8 @@ class VoiceControllerTest extends TestCase
             'value'         => 'The value field must be true or false.'
         ]);        
         
-        $response = $this->post('/voice', [
+        $response = $this->actingAs($this->user, 'api')->postJson('api/voices',
+            [
             'question_id'   => 2342,
             'value'         => $this->faker->boolean(),
         ]);
@@ -85,26 +61,25 @@ class VoiceControllerTest extends TestCase
         $response->assertSessionHasErrors([
             'question_id'   => 'The selected question id is invalid.',
         ]);                
-    }
+    }*/
     public function testPostVoiceUserNotAllowedToYourQuestion()
     {
-        $this->actingAs($this->user);
-
-        $question = Question::where('user_id', $this->user->id)
-            ->first();
-        $response = $this->post('/voice', [
+        $question = Question::factory()
+            ->create(['user_id' => $this->user->id]);
+        $response = $this->actingAs($this->user, 'api')->postJson('api/voices',
+            [
             'question_id'   => $question->id,
-            'value'         => $this->faker->boolean(),
+            'value'         => 1,
         ]);        
-        
+//        $response->assertStatus(500);
         $response->assertJson([
-            'status'  => 500,
             'message' => 'The user is not allowed to vote to your question',
         ]);
     }
+
     public function testPostVoiceUserNotAllowedToVoteMoreThanOnce()
     {
-        $this->actingAs($this->user);
+        
         $question_user = User::factory()->create();
         $question = Question::factory()
             ->create(['user_id' => $question_user->id]);
@@ -113,18 +88,19 @@ class VoiceControllerTest extends TestCase
                 'question_id' => $question->id,
                 'value' => 1,
             ]);
-        $response = $this->post('/voice', [
+        $response = $this->actingAs($this->user, 'api')->postJson('api/voices',
+            [
             'question_id'   => $question->id,
             'value'         => 1
         ]);
+        //$response->assertStatus(500);
         $response->assertJson([
-            'status'  => 500,
             'message' => 'The user is not allowed to vote more than once',
         ]);        
     }
     public function testPostVoiceUpdateYourVoice()
     {
-        $this->actingAs($this->user);
+        
         $question_user = User::factory()->create();
         $question = Question::factory()
             ->create(['user_id' => $question_user->id]);
@@ -135,31 +111,32 @@ class VoiceControllerTest extends TestCase
                 'value' => 1,
         ]);
 
-        $response = $this->post('/voice', [
+        $response = $this->actingAs($this->user, 'api')->postJson('api/voices',
+            [
             'question_id'   => $question->id,
             'value'         => 0,
         ]);
 
+        //$response->assertStatus(201);
         $response->assertJson([
-            'status'  => 201,
             'message' => 'update your voice',
         ]);
     }
     public function testPostVoiceVotingComplete()
     {
-        $this->actingAs($this->user);
+        
         $question_user = User::factory()->create();
         $question = Question::factory()
             ->create(['user_id' => $question_user->id]);
 
-        $response = $this->post('/voice', [
+        $response = $this->actingAs($this->user, 'api')->postJson('api/voices',
+            [
             'question_id'   => $question->id,
             'value'         => 1,
         ]);
 
-        $response->assertStatus(200);
+        //$response->assertStatus(200);
         $response->assertJson([
-            'status'  => 200,
             'message' => 'Voting completed successfully',
         ]);
         $this->assertDatabaseHas(
@@ -171,5 +148,5 @@ class VoiceControllerTest extends TestCase
             ]
         );
         //$response->dumpSession();
-    }   
+    } 
 }
